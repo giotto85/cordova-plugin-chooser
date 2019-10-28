@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.util.Base64;
 
 import java.io.ByteArrayOutputStream;
@@ -40,6 +41,7 @@ public class Chooser extends CordovaPlugin {
 
 	/** @see https://stackoverflow.com/a/23270545/459881 */
 	public static String getDisplayName (ContentResolver contentResolver, Uri uri) {
+
 		String[] projection = {MediaStore.MediaColumns.DISPLAY_NAME};
 		Cursor metaCursor = contentResolver.query(uri, projection, null, null, null);
 
@@ -54,6 +56,7 @@ public class Chooser extends CordovaPlugin {
 		}
 
 		return "File";
+
 	}
 
 
@@ -111,6 +114,25 @@ public class Chooser extends CordovaPlugin {
 
 						String name = Chooser.getDisplayName(contentResolver, uri);
 
+						/* luca */
+						String uriString = uri.toString();
+
+						if(uriString.startsWith("content://")) {
+							String[] projection = {MediaStore.MediaColumns.DATA};
+							Cursor cur = contentResolver.query(uri, projection, null, null, null);
+							if(cur!=null) {
+								cur.moveToFirst();
+								String path = cur.getString(0);
+								uriString = "file://" + path;
+
+								if(name == null) {
+									int nameIdx = path.lastIndexOf('/');
+									name = nameIdx>=0?path.substring(nameIdx+1) : path;
+								}
+							}
+						}
+						/* luca */
+
 						String mediaType = contentResolver.getType(uri);
 						if (mediaType == null || mediaType.isEmpty()) {
 							mediaType = "application/octet-stream";
@@ -127,7 +149,7 @@ public class Chooser extends CordovaPlugin {
 						result.put("data", base64);
 						result.put("mediaType", mediaType);
 						result.put("name", name);
-						result.put("uri", uri.toString());
+						result.put("uri", uriString); //luca
 
 						this.callback.success(result.toString());
 					}
